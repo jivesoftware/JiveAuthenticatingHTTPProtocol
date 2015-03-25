@@ -67,12 +67,20 @@
 
 + (void)start;
 
+/*! 
+ Unregisters the protocol
+ */
++ (void)stop;
+
 /*! Sets the delegate for the class.
  *  \details Note that there's one delegate for the entire class, not one per
  *  instance of the class as is more normal.  The delegate is not retained in general,
  *  but is retained for the duration of any given call.  Once you set the delegate to nil
  *  you can be assured that it won't be called unretained (that is, by the time that
  *  -setDelegate: returns, we've already done all possible retains on the delegate).
+ *
+ *  The delegate is weakly referenced, so there's no risk of a crash if you don't
+ *  explicitly nil it.
  *  \param newValue The new delegate to use; may be nil.
  */
 
@@ -83,6 +91,15 @@
 
 + (id<CustomHTTPProtocolDelegate>)delegate;
 
+/*! Sets the user agent token
+ *  \details This token is appended to the system default user agent.
+ */
++ (void)setUserAgentToken:(NSString *)userAgentToken;
+
+/*! Returns the user agent token.
+ */
++ (NSString *)userAgentToken;
+
 @property (atomic, strong, readonly ) NSURLAuthenticationChallenge *    pendingChallenge;   ///< The current authentication challenge; it's only safe to access this from the main thread.
 
 /*! Call this method to resolve an authentication challeng.  This must be called on the main thread.
@@ -90,7 +107,8 @@
  *  \param credential The credential to use, or nil to continue without a credential.
  */
 
-- (void)resolveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge withCredential:(NSURLCredential *)credential;
+- (void)resolvePendingAuthenticationChallengeWithCredential:(NSURLCredential *)credential;
+- (void)cancelPendingAuthenticaitonChallenge;
 
 @end
 

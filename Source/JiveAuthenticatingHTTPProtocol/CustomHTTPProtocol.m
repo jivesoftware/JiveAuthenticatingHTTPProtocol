@@ -56,7 +56,13 @@
 
 typedef void (^ChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * credential);
 
-@interface CustomHTTPProtocol () <NSURLSessionDataDelegate>
+@interface JAHPWeakDelegateHolder : NSObject
+
+@property (nonatomic, weak) id<JAHPAuthenticatingHTTPProtocolDelegate> delegate;
+
+@end
+
+@interface JAHPAuthenticatingHTTPProtocol () <NSURLSessionDataDelegate>
 
 @property (atomic, strong, readwrite) NSThread *                        clientThread;       ///< The thread on which we should call the client.
 
@@ -84,11 +90,20 @@ typedef void (^ChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition 
 /*! The backing store for the class delegate.  This is protected by @synchronized on the class.
  */
 
-static id<CustomHTTPProtocolDelegate> sDelegate;
+static JAHPWeakDelegateHolder* weakDelegateHolder;
+
+
+/*! A token to append to all HTTP user agent headers.
+ */
+static NSString * sUserAgentToken;
 
 + (void)start
 {
     [NSURLProtocol registerClass:self];
+}
+
++ (void)stop {
+    [NSURLProtocol unregisterClass:self];
 }
 
 + (id<CustomHTTPProtocolDelegate>)delegate
@@ -96,7 +111,10 @@ static id<CustomHTTPProtocolDelegate> sDelegate;
     id<CustomHTTPProtocolDelegate> result;
     
     @synchronized (self) {
-        result = sDelegate;
+        if (!weakDelegateHolder) {
+            weakDelegateHolder = [JAHPWeakDelegateHolder new];
+        }
+        result = weakDelegateHolder.delegate;
     }
     return result;
 }
@@ -104,7 +122,24 @@ static id<CustomHTTPProtocolDelegate> sDelegate;
 + (void)setDelegate:(id<CustomHTTPProtocolDelegate>)newValue
 {
     @synchronized (self) {
-        sDelegate = newValue;
+        if (!weakDelegateHolder) {
+            weakDelegateHolder = [JAHPWeakDelegateHolder new];
+        }
+        weakDelegateHolder.delegate = newValue;
+    }
+}
+
++ (NSString *)userAgentToken {
+    NSString *userAgentToken;
+    @synchronized(self) {
+        userAgentToken = sUserAgentToken;
+    }
+    return userAgentToken;
+}
+
++ (void)setUserAgentToken:(NSString *)userAgentToken {
+    @synchronized(self) {
+        sUserAgentToken = userAgentToken;
     }
 }
 
@@ -205,7 +240,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // NSURLProtocol subclass.
     
     if (shouldAccept) {
-        shouldAccept = NO && [scheme isEqual:@"http"];
+        shouldAccept = YES && [scheme isEqual:@"http"];
         if ( ! shouldAccept ) {
             shouldAccept = YES && [scheme isEqual:@"https"];
         }
@@ -244,7 +279,30 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     assert(client != nil);
     // can be called on any thread
     
-    self = [super initWithRequest:request cachedResponse:cachedResponse client:client];
+    NSMutableURLRequest *mutableRequest = [request mutableCopy];
+    NSArray *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:mutableRequest.URL];
+    NSString *cookieString = @"";
+    for (NSHTTPCookie *cookie in cookies) {
+        cookieString = [cookieString stringByAppendingString:[NSString stringWithFormat:@"%@=%@; ", cookie.name, cookie.value]];
+    }
+    if ([cookieString length] > 0) {
+        cookieString = [cookieString substringToIndex:[cookieString length] - 2];
+        NSUInteger cookieStringBytes = [cookieString lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        if (cookieStringBytes > 3999) {
+            [mutableRequest setValue:cookieString forHTTPHeaderField:@"Cookie"];
+            
+        }
+    }
+    
+    NSString *userAgentToken = [[self class] userAgentToken];
+    if ([userAgentToken length]) {
+        // use addValue:forHTTPHeaderField: instead of setValue:forHTTPHeaderField:.
+        // we want to append the userAgentToken to the existing user agent instead of
+        // replacing the existing user agent.
+        [mutableRequest addValue:userAgentToken forHTTPHeaderField:@"User-Agent"];
+    }
+    
+    self = [super initWithRequest:mutableRequest cachedResponse:cachedResponse client:client];
     if (self != nil) {
         // All we do here is log the call.
         [[self class] customHTTPProtocol:self logWithFormat:@"init for %@ from <%@ %p>", [request URL], [client class], client];
@@ -540,39 +598,58 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     }];
 }
 
-- (void)resolveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge withCredential:(NSURLCredential *)credential
+- (void)resolvePendingAuthenticationChallengeWithCredential:(NSURLCredential *)credential
 {
-    assert(challenge == self.pendingChallenge);
     // credential may be nil
     assert([NSThread isMainThread]);
     assert(self.clientThread != nil);
     
-    if (challenge != self.pendingChallenge) {
-        [[self class] customHTTPProtocol:self logWithFormat:@"challenge resolution mismatch (%@ / %@)", challenge, self.pendingChallenge];
-        // This should never happen, and we want to know if it does, at least in the debug build.
-        assert(NO);
-    } else {
-        ChallengeCompletionHandler  completionHandler;
-        
-        // We clear out our record of the pending challenge and then pass the real work
-        // over to the client thread (which ensures that the challenge is resolved on
-        // the same thread we received it on).
-        
-        completionHandler = self.pendingChallengeCompletionHandler;
-        self.pendingChallenge = nil;
-        self.pendingChallengeCompletionHandler = nil;
-        
-        [self performOnThread:self.clientThread modes:self.modes block:^{
-            if (credential == nil) {
-                [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ resolved without credential", [[challenge protectionSpace] authenticationMethod]];
-                completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-            } else {
-                [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ resolved with <%@ %p>", [[challenge protectionSpace] authenticationMethod], [credential class], credential];
-                completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
-            }
-        }];
-    }
+    ChallengeCompletionHandler  completionHandler;
+    NSURLAuthenticationChallenge *challenge;
+    
+    // We clear out our record of the pending challenge and then pass the real work
+    // over to the client thread (which ensures that the challenge is resolved on
+    // the same thread we received it on).
+    
+    completionHandler = self.pendingChallengeCompletionHandler;
+    challenge = self.pendingChallenge;
+    self.pendingChallenge = nil;
+    self.pendingChallengeCompletionHandler = nil;
+    
+    [self performOnThread:self.clientThread modes:self.modes block:^{
+        if (credential == nil) {
+            [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ resolved without credential", [[challenge protectionSpace] authenticationMethod]];
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+        } else {
+            [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ resolved with <%@ %p>", [[challenge protectionSpace] authenticationMethod], [credential class], credential];
+            completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+        }
+    }];
 }
+
+- (void)cancelPendingAuthenticaitonChallenge {
+    assert([NSThread isMainThread]);
+    assert(self.clientThread != nil);
+    
+    ChallengeCompletionHandler  completionHandler;
+    NSURLAuthenticationChallenge *challenge;
+    
+    // We clear out our record of the pending challenge and then pass the real work
+    // over to the client thread (which ensures that the challenge is resolved on
+    // the same thread we received it on).
+    
+    completionHandler = self.pendingChallengeCompletionHandler;
+    challenge = self.pendingChallenge;
+    self.pendingChallenge = nil;
+    self.pendingChallengeCompletionHandler = nil;
+    
+    [self performOnThread:self.clientThread modes:self.modes block:^{
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ was canceld", [[challenge protectionSpace] authenticationMethod]];
+        
+        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
+    }];
+}
+
 
 #pragma mark * NSURLSession delegate callbacks
 
@@ -746,8 +823,12 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         [[self client] URLProtocol:self didFailWithError:error];
     }
     
-    // We don't need to clean up the connection here; the system will call, or has already called, 
+    // We don't need to clean up the connection here; the system will call, or has already called,
     // -stopLoading to do that.
 }
+
+@end
+
+@implementation JAHPWeakDelegateHolder
 
 @end

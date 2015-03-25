@@ -410,7 +410,7 @@ extern NSMutableURLRequest * CanonicalRequestForRequest(NSURLRequest *request)
             // Note: The following logging is useful when debugging this code.  Change the
             // if expression to YES to enable it.
             
-            if (NO) {
+            if (/* DISABLES CODE */ (NO)) {
                 fprintf(stderr, "  [%zu] %.*s\n", stepIndex, (int) [urlData length], (const char *) [urlData bytes]);
             }
             
