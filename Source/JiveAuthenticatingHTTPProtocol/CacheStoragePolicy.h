@@ -1,7 +1,7 @@
 /*
-     File: CacheStoragePolicy.h
+ File: CacheStoragePolicy.h
  Abstract: A function to determine the cache storage policy for a request.
-  Version: 1.1
+ Version: 1.1
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
  Inc. ("Apple") in consideration of your agreement to the following
@@ -48,10 +48,10 @@
 @import Foundation;
 
 /*! Determines the cache storage policy for a response.
- *  \details When we provide a response up to the client we need to tell the client whether 
- *  the response is cacheable or not.  The default HTTP/HTTPS protocol has a reasonable 
- *  complex chunk of code to determine this, but we can't get at it.  Thus, we have to 
- *  reimplement it ourselves.  This is split off into a separate file to emphasise that 
+ *  \details When we provide a response up to the client we need to tell the client whether
+ *  the response is cacheable or not.  The default HTTP/HTTPS protocol has a reasonable
+ *  complex chunk of code to determine this, but we can't get at it.  Thus, we have to
+ *  reimplement it ourselves.  This is split off into a separate file to emphasise that
  *  this is standard boilerplate that you probably don't need to look at.
  *  \param request The request that generated the response; must not be nil.
  *  \param response The response itself; must not be nil.
