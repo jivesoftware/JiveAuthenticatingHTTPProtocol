@@ -1,0 +1,14 @@
+PODS:
+  - JiveAuthenticatingHTTPProtocol (0.1.0)
+
+DEPENDENCIES:
+  - JiveAuthenticatingHTTPProtocol (from `.`)
+
+EXTERNAL SOURCES:
+  JiveAuthenticatingHTTPProtocol:
+    :path: .
+
+SPEC CHECKSUMS:
+  JiveAuthenticatingHTTPProtocol: 5223eaf916686e4721f8bdddabb18a43c92c4304
+
+COCOAPODS: 0.36.0
