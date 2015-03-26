@@ -1,5 +1,5 @@
 /*
- File: QNSURLSessionDemux.m
+ File: JAHPQNSURLSessionDemux.m
  Abstract: A general class to demux NSURLSession delegate callbacks.
  Version: 1.1
  
@@ -45,9 +45,9 @@
  
  */
 
-#import "QNSURLSessionDemux.h"
+#import "JAHPQNSURLSessionDemux.h"
 
-@interface QNSURLSessionDemuxTaskInfo : NSObject
+@interface JAHPQNSURLSessionDemuxTaskInfo : NSObject
 
 - (instancetype)initWithTask:(NSURLSessionDataTask *)task delegate:(id<NSURLSessionDataDelegate>)delegate modes:(NSArray *)modes;
 
@@ -62,14 +62,14 @@
 
 @end
 
-@interface QNSURLSessionDemuxTaskInfo ()
+@interface JAHPQNSURLSessionDemuxTaskInfo ()
 
 @property (atomic, strong, readwrite) id<NSURLSessionDataDelegate>  delegate;
 @property (atomic, strong, readwrite) NSThread *                    thread;
 
 @end
 
-@implementation QNSURLSessionDemuxTaskInfo
+@implementation JAHPQNSURLSessionDemuxTaskInfo
 
 - (instancetype)initWithTask:(NSURLSessionDataTask *)task delegate:(id<NSURLSessionDataDelegate>)delegate modes:(NSArray *)modes
 {
@@ -108,14 +108,14 @@
 
 @end
 
-@interface QNSURLSessionDemux () <NSURLSessionDataDelegate>
+@interface JAHPQNSURLSessionDemux () <NSURLSessionDataDelegate>
 
 @property (atomic, strong, readonly ) NSMutableDictionary * taskInfoByTaskID;       // keys NSURLSessionTask taskIdentifier, values are SessionManager
 @property (atomic, strong, readonly ) NSOperationQueue *    sessionDelegateQueue;
 
 @end
 
-@implementation QNSURLSessionDemux
+@implementation JAHPQNSURLSessionDemux
 
 - (instancetype)init
 {
@@ -147,7 +147,7 @@
 - (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request delegate:(id<NSURLSessionDataDelegate>)delegate modes:(NSArray *)modes
 {
     NSURLSessionDataTask *          task;
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     assert(request != nil);
     assert(delegate != nil);
@@ -160,7 +160,7 @@
     task = [self.session dataTaskWithRequest:request];
     assert(task != nil);
     
-    taskInfo = [[QNSURLSessionDemuxTaskInfo alloc] initWithTask:task delegate:delegate modes:modes];
+    taskInfo = [[JAHPQNSURLSessionDemuxTaskInfo alloc] initWithTask:task delegate:delegate modes:modes];
     
     @synchronized (self) {
         self.taskInfoByTaskID[@(task.taskIdentifier)] = taskInfo;
@@ -169,9 +169,9 @@
     return task;
 }
 
-- (QNSURLSessionDemuxTaskInfo *)taskInfoForTask:(NSURLSessionTask *)task
+- (JAHPQNSURLSessionDemuxTaskInfo *)taskInfoForTask:(NSURLSessionTask *)task
 {
-    QNSURLSessionDemuxTaskInfo *    result;
+    JAHPQNSURLSessionDemuxTaskInfo *    result;
     
     assert(task != nil);
     
@@ -184,7 +184,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)newRequest completionHandler:(void (^)(NSURLRequest *))completionHandler
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)]) {
@@ -198,7 +198,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential))completionHandler
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:didReceiveChallenge:completionHandler:)]) {
@@ -212,7 +212,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task needNewBodyStream:(void (^)(NSInputStream *bodyStream))completionHandler
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:needNewBodyStream:)]) {
@@ -226,7 +226,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didSendBodyData:(int64_t)bytesSent totalBytesSent:(int64_t)totalBytesSent totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:)]) {
@@ -238,7 +238,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
     
@@ -264,7 +264,7 @@
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didReceiveResponse:completionHandler:)]) {
@@ -278,7 +278,7 @@
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didBecomeDownloadTask:(NSURLSessionDownloadTask *)downloadTask
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didBecomeDownloadTask:)]) {
@@ -290,7 +290,7 @@
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didReceiveData:)]) {
@@ -302,7 +302,7 @@
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask willCacheResponse:(NSCachedURLResponse *)proposedResponse completionHandler:(void (^)(NSCachedURLResponse *cachedResponse))completionHandler
 {
-    QNSURLSessionDemuxTaskInfo *    taskInfo;
+    JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
     if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:willCacheResponse:completionHandler:)]) {

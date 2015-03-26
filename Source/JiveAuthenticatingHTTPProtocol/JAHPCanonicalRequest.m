@@ -1,5 +1,5 @@
 /*
- File: CanonicalRequest.m
+ File: JAHPCanonicalRequest.m
  Abstract: A function for creating canonical HTTP/HTTPS requests.
  Version: 1.1
  
@@ -45,7 +45,7 @@
  
  */
 
-#import "CanonicalRequest.h"
+#import "JAHPCanonicalRequest.h"
 
 #include <xlocale.h>
 
@@ -343,7 +343,7 @@ static void CanonicaliseHeaders(NSMutableURLRequest * request)
 
 #pragma mark * API
 
-extern NSMutableURLRequest * CanonicalRequestForRequest(NSURLRequest *request)
+extern NSMutableURLRequest * JAHPCanonicalRequestForRequest(NSURLRequest *request)
 {
     NSMutableURLRequest *   result;
     NSString *              scheme;

@@ -1,1 +1,0 @@
-../../../../Source/JiveAuthenticatingHTTPProtocol/CanonicalRequest.h

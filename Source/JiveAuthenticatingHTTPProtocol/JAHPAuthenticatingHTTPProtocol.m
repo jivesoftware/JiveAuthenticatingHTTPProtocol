@@ -1,5 +1,5 @@
 /*
- File: CustomHTTPProtocol.m
+ File: JAHPAuthenticatingHTTPProtocol.m
  Abstract: An NSURLProtocol subclass that overrides the built-in HTTP/HTTPS protocol.
  Version: 1.1
  
@@ -45,11 +45,11 @@
  
  */
 
-#import "CustomHTTPProtocol.h"
+#import "JAHPAuthenticatingHTTPProtocol.h"
 
-#import "CanonicalRequest.h"
-#import "CacheStoragePolicy.h"
-#import "QNSURLSessionDemux.h"
+#import "JAHPCanonicalRequest.h"
+#import "JAHPCacheStoragePolicy.h"
+#import "JAHPQNSURLSessionDemux.h"
 
 // I use the following typedef to keep myself sane in the face of the wacky
 // Objective-C block syntax.
@@ -83,7 +83,7 @@ typedef void (^ChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition 
 
 @end
 
-@implementation CustomHTTPProtocol
+@implementation JAHPAuthenticatingHTTPProtocol
 
 #pragma mark * Subclass specific additions
 
@@ -106,9 +106,9 @@ static NSString * sUserAgentToken;
     [NSURLProtocol unregisterClass:self];
 }
 
-+ (id<CustomHTTPProtocolDelegate>)delegate
++ (id<JAHPAuthenticatingHTTPProtocolDelegate>)delegate
 {
-    id<CustomHTTPProtocolDelegate> result;
+    id<JAHPAuthenticatingHTTPProtocolDelegate> result;
     
     @synchronized (self) {
         if (!weakDelegateHolder) {
@@ -119,7 +119,7 @@ static NSString * sUserAgentToken;
     return result;
 }
 
-+ (void)setDelegate:(id<CustomHTTPProtocolDelegate>)newValue
++ (void)setDelegate:(id<JAHPAuthenticatingHTTPProtocolDelegate>)newValue
 {
     @synchronized (self) {
         if (!weakDelegateHolder) {
@@ -149,10 +149,10 @@ static NSString * sUserAgentToken;
  *  thread in the correct modes.  Can be called on any thread.
  */
 
-+ (QNSURLSessionDemux *)sharedDemux
++ (JAHPQNSURLSessionDemux *)sharedDemux
 {
     static dispatch_once_t      sOnceToken;
-    static QNSURLSessionDemux * sDemux;
+    static JAHPQNSURLSessionDemux * sDemux;
     dispatch_once(&sOnceToken, ^{
         NSURLSessionConfiguration *     config;
         
@@ -160,7 +160,7 @@ static NSString * sUserAgentToken;
         // You have to explicitly configure the session to use your own protocol subclass here
         // otherwise you don't see redirects <rdar://problem/17384498>.
         config.protocolClasses = @[ self ];
-        sDemux = [[QNSURLSessionDemux alloc] initWithConfiguration:config];
+        sDemux = [[JAHPQNSURLSessionDemux alloc] initWithConfiguration:config];
     });
     return sDemux;
 }
@@ -171,19 +171,19 @@ static NSString * sUserAgentToken;
  *  \param format A standard NSString-style format string; will not be nil.
  */
 
-+ (void)customHTTPProtocol:(CustomHTTPProtocol *)protocol logWithFormat:(NSString *)format, ... NS_FORMAT_FUNCTION(2, 3)
++ (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol logWithFormat:(NSString *)format, ... NS_FORMAT_FUNCTION(2, 3)
 // All internal logging calls this routine, which routes the log message to the
 // delegate.
 {
     // protocol may be nil
-    id<CustomHTTPProtocolDelegate> strongDelegate;
+    id<JAHPAuthenticatingHTTPProtocolDelegate> strongDelegate;
     
     strongDelegate = [self delegate];
-    if ([strongDelegate respondsToSelector:@selector(customHTTPProtocol:logWithFormat:arguments:)]) {
+    if ([strongDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:logWithFormat:arguments:)]) {
         va_list arguments;
         
         va_start(arguments, format);
-        [strongDelegate customHTTPProtocol:protocol logWithFormat:format arguments:arguments];
+        [strongDelegate authenticatingHTTPProtocol:protocol logWithFormat:format arguments:arguments];
         va_end(arguments);
     }
 }
@@ -194,7 +194,7 @@ static NSString * sUserAgentToken;
  *  suffer an infinite recursive death).
  */
 
-static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPProtocol";
+static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAuthenticatingHTTPProtocol";
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request
 {
@@ -211,15 +211,15 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         shouldAccept = (url != nil);
     }
     if ( ! shouldAccept ) {
-        [self customHTTPProtocol:nil logWithFormat:@"decline request (malformed)"];
+        [self authenticatingHTTPProtocol:nil logWithFormat:@"decline request (malformed)"];
     }
     
     // Decline our recursive requests.
     
     if (shouldAccept) {
-        shouldAccept = ([self propertyForKey:kOurRecursiveRequestFlagProperty inRequest:request] == nil);
+        shouldAccept = ([self propertyForKey:kJAHPRecursiveRequestFlagProperty inRequest:request] == nil);
         if ( ! shouldAccept ) {
-            [self customHTTPProtocol:nil logWithFormat:@"decline request %@ (recursive)", url];
+            [self authenticatingHTTPProtocol:nil logWithFormat:@"decline request %@ (recursive)", url];
         }
     }
     
@@ -230,7 +230,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         shouldAccept = (scheme != nil);
         
         if ( ! shouldAccept ) {
-            [self customHTTPProtocol:nil logWithFormat:@"decline request %@ (no scheme)", url];
+            [self authenticatingHTTPProtocol:nil logWithFormat:@"decline request %@ (no scheme)", url];
         }
     }
     
@@ -246,9 +246,9 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         }
         
         if ( ! shouldAccept ) {
-            [self customHTTPProtocol:nil logWithFormat:@"decline request %@ (scheme mismatch)", url];
+            [self authenticatingHTTPProtocol:nil logWithFormat:@"decline request %@ (scheme mismatch)", url];
         } else {
-            [self customHTTPProtocol:nil logWithFormat:@"accept request %@", url];
+            [self authenticatingHTTPProtocol:nil logWithFormat:@"accept request %@", url];
         }
     }
     
@@ -265,9 +265,9 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // Canonicalising a request is quite complex, so all the heavy lifting has
     // been shuffled off to a separate module.
     
-    result = CanonicalRequestForRequest(request);
+    result = JAHPCanonicalRequestForRequest(request);
     
-    [self customHTTPProtocol:nil logWithFormat:@"canonicalized %@ to %@", [request URL], [result URL]];
+    [self authenticatingHTTPProtocol:nil logWithFormat:@"canonicalized %@ to %@", [request URL], [result URL]];
     
     return result;
 }
@@ -305,7 +305,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     self = [super initWithRequest:mutableRequest cachedResponse:cachedResponse client:client];
     if (self != nil) {
         // All we do here is log the call.
-        [[self class] customHTTPProtocol:self logWithFormat:@"init for %@ from <%@ %p>", [request URL], [client class], client];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"init for %@ from <%@ %p>", [request URL], [client class], client];
     }
     return self;
 }
@@ -313,7 +313,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
 - (void)dealloc
 {
     // can be called on any thread
-    [[self class] customHTTPProtocol:self logWithFormat:@"dealloc"];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"dealloc"];
     assert(self->_task == nil);                     // we should have cleared it by now
     assert(self->_pendingChallenge == nil);         // we should have cancelled it by now
     assert(self->_pendingChallengeCompletionHandler == nil);    // we should have cancelled it by now
@@ -356,13 +356,13 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     recursiveRequest = [[self request] mutableCopy];
     assert(recursiveRequest != nil);
     
-    [[self class] setProperty:@YES forKey:kOurRecursiveRequestFlagProperty inRequest:recursiveRequest];
+    [[self class] setProperty:@YES forKey:kJAHPRecursiveRequestFlagProperty inRequest:recursiveRequest];
     
     self.startTime = [NSDate timeIntervalSinceReferenceDate];
     if (currentMode == nil) {
-        [[self class] customHTTPProtocol:self logWithFormat:@"start %@", [recursiveRequest URL]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"start %@", [recursiveRequest URL]];
     } else {
-        [[self class] customHTTPProtocol:self logWithFormat:@"start %@ (mode %@)", [recursiveRequest URL], currentMode];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"start %@ (mode %@)", [recursiveRequest URL], currentMode];
     }
     
     // Latch the thread we were called on, primarily for debugging purposes.
@@ -381,7 +381,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
 {
     // The implementation just cancels the current load (if it's still running).
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"stop (elapsed %.1f)", [NSDate timeIntervalSinceReferenceDate] - self.startTime];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"stop (elapsed %.1f)", [NSDate timeIntervalSinceReferenceDate] - self.startTime];
     
     assert(self.clientThread != nil);           // someone must have called -startLoading
     
@@ -466,7 +466,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     assert(completionHandler != nil);
     assert([NSThread currentThread] == self.clientThread);
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ received", [[challenge protectionSpace] authenticationMethod]];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ received", [[challenge protectionSpace] authenticationMethod]];
     
     [self performOnThread:nil modes:nil block:^{
         [self mainThreadDidReceiveAuthenticationChallenge:challenge completionHandler:completionHandler];
@@ -476,7 +476,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
 /*! The main thread side of authentication challenge processing.
  *  \details If there's already a pending challenge, something has gone wrong and
  *  the routine simply cancels the new challenge.  If our delegate doesn't implement
- *  the -customHTTPProtocol:canAuthenticateAgainstProtectionSpace: delegate callback,
+ *  the -authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace: delegate callback,
  *  we also cancel the challenge.  OTOH, if all goes well we simply call our delegate
  *  with the challenge.
  *  \param challenge The authentication challenge to process; must not be nil.
@@ -498,21 +498,21 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         // Note that we have to cancel the challenge on the thread on which we received it,
         // namely, the client thread.
         
-        [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ cancelled; other challenge pending", [[challenge protectionSpace] authenticationMethod]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancelled; other challenge pending", [[challenge protectionSpace] authenticationMethod]];
         assert(NO);
         [self clientThreadCancelAuthenticationChallenge:challenge completionHandler:completionHandler];
     } else {
-        id<CustomHTTPProtocolDelegate>  strongDelegate;
+        id<JAHPAuthenticatingHTTPProtocolDelegate>  strongDelegate;
         
         strongDelegate = [[self class] delegate];
         
         // Tell the delegate about it.  It would be weird if the delegate didn't support this
-        // selector (it did return YES from -customHTTPProtocol:canAuthenticateAgainstProtectionSpace:
+        // selector (it did return YES from -authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace:
         // after all), but if it doesn't then we just cancel the challenge ourselves (or the client
         // thread, of course).
         
-        if ( ! [strongDelegate respondsToSelector:@selector(customHTTPProtocol:canAuthenticateAgainstProtectionSpace:)] ) {
-            [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ cancelled; no delegate method", [[challenge protectionSpace] authenticationMethod]];
+        if ( ! [strongDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace:)] ) {
+            [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancelled; no delegate method", [[challenge protectionSpace] authenticationMethod]];
             assert(NO);
             [self clientThreadCancelAuthenticationChallenge:challenge completionHandler:completionHandler];
         } else {
@@ -524,8 +524,8 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
             
             // Pass the challenge to the delegate.
             
-            [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ passed to delegate", [[challenge protectionSpace] authenticationMethod]];
-            [strongDelegate customHTTPProtocol:self didReceiveAuthenticationChallenge:self.pendingChallenge];
+            [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ passed to delegate", [[challenge protectionSpace] authenticationMethod]];
+            [strongDelegate authenticatingHTTPProtocol:self didReceiveAuthenticationChallenge:self.pendingChallenge];
         }
     }
 }
@@ -574,9 +574,9 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
             // there's no challenge outstanding, but the synchronisation issues are tricky.  Rather than solve
             // those, I'm just not going to log in this case.
             //
-            // [[self class] customHTTPProtocol:self logWithFormat:@"challenge not cancelled; no challenge pending"];
+            // [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge not cancelled; no challenge pending"];
         } else {
-            id<CustomHTTPProtocolDelegate>  strongeDelegate;
+            id<JAHPAuthenticatingHTTPProtocolDelegate>  strongeDelegate;
             NSURLAuthenticationChallenge *  challenge;
             
             strongeDelegate = [[self class] delegate];
@@ -585,11 +585,11 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
             self.pendingChallenge = nil;
             self.pendingChallengeCompletionHandler = nil;
             
-            if ([strongeDelegate respondsToSelector:@selector(customHTTPProtocol:didCancelAuthenticationChallenge:)]) {
-                [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ cancellation passed to delegate", [[challenge protectionSpace] authenticationMethod]];
-                [strongeDelegate customHTTPProtocol:self didCancelAuthenticationChallenge:challenge];
+            if ([strongeDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:didCancelAuthenticationChallenge:)]) {
+                [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancellation passed to delegate", [[challenge protectionSpace] authenticationMethod]];
+                [strongeDelegate authenticatingHTTPProtocol:self didCancelAuthenticationChallenge:challenge];
             } else {
-                [[self class] customHTTPProtocol:self logWithFormat:@"challenge %@ cancellation failed; no delegate method", [[challenge protectionSpace] authenticationMethod]];
+                [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancellation failed; no delegate method", [[challenge protectionSpace] authenticationMethod]];
                 // If we managed to send a challenge to the client but can't cancel it, that's bad.
                 // There's nothing we can do at this point except log the problem.
                 assert(NO);
@@ -666,7 +666,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     assert(completionHandler != nil);
     assert([NSThread currentThread] == self.clientThread);
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"will redirect from %@ to %@", [response URL], [newRequest URL]];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"will redirect from %@ to %@", [response URL], [newRequest URL]];
     
     // The new request was copied from our old request, so it has our magic property.  We actually
     // have to remove that so that, when the client starts the new request, we see it.  If we
@@ -676,10 +676,10 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // We also cancel our current connection because the client is going to start a new request for
     // us anyway.
     
-    assert([[self class] propertyForKey:kOurRecursiveRequestFlagProperty inRequest:newRequest] != nil);
+    assert([[self class] propertyForKey:kJAHPRecursiveRequestFlagProperty inRequest:newRequest] != nil);
     
     redirectRequest = [newRequest mutableCopy];
-    [[self class] removePropertyForKey:kOurRecursiveRequestFlagProperty inRequest:redirectRequest];
+    [[self class] removePropertyForKey:kJAHPRecursiveRequestFlagProperty inRequest:redirectRequest];
     
     // Tell the client about the redirect.
     
@@ -699,7 +699,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
 {
     BOOL        result;
-    id<CustomHTTPProtocolDelegate> strongeDelegate;
+    id<JAHPAuthenticatingHTTPProtocolDelegate> strongeDelegate;
     
 #pragma unused(session)
 #pragma unused(task)
@@ -715,18 +715,18 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     strongeDelegate = [[self class] delegate];
     
     result = NO;
-    if ([strongeDelegate respondsToSelector:@selector(customHTTPProtocol:canAuthenticateAgainstProtectionSpace:)]) {
-        result = [strongeDelegate customHTTPProtocol:self canAuthenticateAgainstProtectionSpace:[challenge protectionSpace]];
+    if ([strongeDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace:)]) {
+        result = [strongeDelegate authenticatingHTTPProtocol:self canAuthenticateAgainstProtectionSpace:[challenge protectionSpace]];
     }
     
     // If the client wants the challenge, kick off that process.  If not, resolve it by doing the default thing.
     
     if (result) {
-        [[self class] customHTTPProtocol:self logWithFormat:@"can authenticate %@", [[challenge protectionSpace] authenticationMethod]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"can authenticate %@", [[challenge protectionSpace] authenticationMethod]];
         
         [self didReceiveAuthenticationChallenge:challenge completionHandler:completionHandler];
     } else {
-        [[self class] customHTTPProtocol:self logWithFormat:@"cannot authenticate %@", [[challenge protectionSpace] authenticationMethod]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"cannot authenticate %@", [[challenge protectionSpace] authenticationMethod]];
         
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
     }
@@ -749,7 +749,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // we were given.
     
     if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
-        cacheStoragePolicy = CacheStoragePolicyForRequestAndResponse(self.task.originalRequest, (NSHTTPURLResponse *) response);
+        cacheStoragePolicy = JAHPCacheStoragePolicyForRequestAndResponse(self.task.originalRequest, (NSHTTPURLResponse *) response);
         statusCode = [((NSHTTPURLResponse *) response) statusCode];
     } else {
         assert(NO);
@@ -757,7 +757,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         statusCode = 42;
     }
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"received response %zd / %@ with cache storage policy %zu", (ssize_t) statusCode, [response URL], (size_t) cacheStoragePolicy];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"received response %zd / %@ with cache storage policy %zu", (ssize_t) statusCode, [response URL], (size_t) cacheStoragePolicy];
     
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:cacheStoragePolicy];
     
@@ -774,7 +774,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     
     // Just pass the call on to our client.
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"received %zu bytes of data", (size_t) [data length]];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"received %zu bytes of data", (size_t) [data length]];
     
     [[self client] URLProtocol:self didLoadData:data];
 }
@@ -790,7 +790,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     
     // We implement this delegate callback purely for the purposes of logging.
     
-    [[self class] customHTTPProtocol:self logWithFormat:@"will cache response"];
+    [[self class] authenticatingHTTPProtocol:self logWithFormat:@"will cache response"];
     
     completionHandler(proposedResponse);
 }
@@ -806,7 +806,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // Just log and then, in most cases, pass the call on to our client.
     
     if (error == nil) {
-        [[self class] customHTTPProtocol:self logWithFormat:@"success"];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"success"];
         
         [[self client] URLProtocolDidFinishLoading:self];
     } else if ( [[error domain] isEqual:NSURLErrorDomain] && ([error code] == NSURLErrorCancelled) ) {
@@ -818,7 +818,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         // o if the request is cancelled by a call to -stopLoading, in which case the client doesn't
         //   want to know about the failure
     } else {
-        [[self class] customHTTPProtocol:self logWithFormat:@"error %@ / %d", [error domain], (int) [error code]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"error %@ / %d", [error domain], (int) [error code]];
         
         [[self client] URLProtocol:self didFailWithError:error];
     }

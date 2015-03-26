@@ -1,6 +1,6 @@
 /*
- File: CanonicalRequest.h
- Abstract: A function for creating canonical HTTP/HTTPS requests.
+ File: JAHPCacheStoragePolicy.h
+ Abstract: A function to determine the cache storage policy for a request.
  Version: 1.1
  
  Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
@@ -47,18 +47,15 @@
 
 @import Foundation;
 
-/*! Returns a canonical form of the supplied request.
- *  \details The Foundation URL loading system needs to be able to canonicalize URL
- *  requests for various reasons (for example, to look for cache hits).  The default
- *  HTTP/HTTPS protocol has a complex chunk of code to perform this function.  Unfortunately
- *  there's no way for third party code to access this.  Instead, we have to reimplement
- *  it all ourselves.  This is split off into a separate file to emphasise that this
- *  is standard boilerplate that you probably don't need to look at.
- *
- *  IMPORTANT: While you can take most of this code as read, you might want to tweak
- *  the handling of the "Accept-Language" in the CanonicaliseHeaders routine.
- *  \param request The request to canonicalise; must not be nil.
- *  \returns The canonical request; should never be nil.
+/*! Determines the cache storage policy for a response.
+ *  \details When we provide a response up to the client we need to tell the client whether
+ *  the response is cacheable or not.  The default HTTP/HTTPS protocol has a reasonable
+ *  complex chunk of code to determine this, but we can't get at it.  Thus, we have to
+ *  reimplement it ourselves.  This is split off into a separate file to emphasise that
+ *  this is standard boilerplate that you probably don't need to look at.
+ *  \param request The request that generated the response; must not be nil.
+ *  \param response The response itself; must not be nil.
+ *  \returns A cache storage policy to use.
  */
 
-extern NSMutableURLRequest * CanonicalRequestForRequest(NSURLRequest *request);
+extern NSURLCacheStoragePolicy JAHPCacheStoragePolicyForRequestAndResponse(NSURLRequest * request, NSHTTPURLResponse * response);

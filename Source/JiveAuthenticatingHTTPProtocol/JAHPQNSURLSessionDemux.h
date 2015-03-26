@@ -1,5 +1,5 @@
 /*
- File: QNSURLSessionDemux.h
+ File: JAHPQNSURLSessionDemux.h
  Abstract: A general class to demux NSURLSession delegate callbacks.
  Version: 1.1
  
@@ -56,7 +56,7 @@
  these callbacks.
  */
 
-@interface QNSURLSessionDemux : NSObject
+@interface JAHPQNSURLSessionDemux : NSObject
 
 /*! Create a demultiplex for the specified session configuration.
  *  \param configuration The session configuration to use; if nil, a default session is created.
