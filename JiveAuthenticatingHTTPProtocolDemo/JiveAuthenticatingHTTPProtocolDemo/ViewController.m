@@ -33,13 +33,13 @@
 
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
 
-- (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace {
+- (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace {
     BOOL canAuthenticate = [protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPBasic];
     return canAuthenticate;
 }
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
-    self.authenticatingHTTPProtocol = protocol;
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
+    self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
     
     self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
                                                     message:@"Enter 'foo' for the username and 'bar' for the password"
@@ -52,7 +52,7 @@
     [self.authAlertView show];
 }
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
     [self.authAlertView dismissWithClickedButtonIndex:self.authAlertView.cancelButtonIndex
                                              animated:YES];
     self.authAlertView = nil;
@@ -65,7 +65,7 @@
                       otherButtonTitles:nil] show];
 }
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
     NSLog(@"%@", [[NSString alloc] initWithFormat:format arguments:arguments]);
 }
 

@@ -160,7 +160,7 @@
  *  callback, or NO for the challenge to be handled in the default way.
  */
 
-- (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace;
+- (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace;
 
 /*! Called by an JAHPAuthenticatingHTTPProtocol instance to request that the delegate process on authentication
  *  challenge. Will be called on the main thread. Unless the challenge is cancelled (see below)
@@ -169,7 +169,7 @@
  *  \param challenge The authentication challenge; will not be nil.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
 
 /*! Called by an JAHPAuthenticatingHTTPProtocol instance to cancel an issued authentication challenge.
  *  Will be called on the main thread.
@@ -178,7 +178,7 @@
  *  previously issued by -authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace:.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
 
 /*! Called by the JAHPAuthenticatingHTTPProtocol to log various bits of information.
  *  Can be called on any thread.
@@ -187,6 +187,6 @@
  *  \param arguments Arguments for that format string.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)protocol logWithFormat:(NSString *)format arguments:(va_list)arguments;
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments;
 
 @end
