@@ -599,6 +599,8 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
                     didCancelAuthenticationChallengeHandler(self, challenge);
                 }
                 [strongeDelegate authenticatingHTTPProtocol:self didCancelAuthenticationChallenge:challenge];
+            } else if (didCancelAuthenticationChallengeHandler) {
+                didCancelAuthenticationChallengeHandler(self, challenge);
             } else {
                 [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancellation failed; no delegate method", [[challenge protectionSpace] authenticationMethod]];
                 // If we managed to send a challenge to the client but can't cancel it, that's bad.
@@ -657,7 +659,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     self.pendingDidCancelAuthenticationChallengeHandler = nil;
     
     [self performOnThread:self.clientThread modes:self.modes block:^{
-        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ was canceld", [[challenge protectionSpace] authenticationMethod]];
+        [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ was canceled", [[challenge protectionSpace] authenticationMethod]];
         
         completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
     }];

@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name = 'JiveAuthenticatingHTTPProtocol'
-  s.version = '0.2.0'
+  s.version = '0.2.1'
   s.license = { :type => 'BSD', :file => 'LICENSE' }
   s.summary = 'JiveAuthenticatingHTTPProtocol provides authentication callbacks for a UIWebView'
   s.homepage = 'https://github.com/jivesoftware/JiveAuthenticatingHTTPProtocol'
