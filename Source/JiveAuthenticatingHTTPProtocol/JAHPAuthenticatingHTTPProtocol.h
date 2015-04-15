@@ -108,7 +108,7 @@
  */
 
 - (void)resolvePendingAuthenticationChallengeWithCredential:(NSURLCredential *)credential;
-- (void)cancelPendingAuthenticaitonChallenge;
+- (void)cancelPendingAuthenticationChallenge;
 
 @end
 

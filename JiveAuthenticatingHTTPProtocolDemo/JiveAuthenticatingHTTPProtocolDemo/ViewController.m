@@ -96,7 +96,7 @@
 #pragma mark - Private API
 
 - (void)cancelChallengeAfterAlertViewDismissal {
-    [self.authenticatingHTTPProtocol cancelPendingAuthenticaitonChallenge];
+    [self.authenticatingHTTPProtocol cancelPendingAuthenticationChallenge];
     self.authenticatingHTTPProtocol = nil;
     self.authAlertView = nil;
 }

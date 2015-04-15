@@ -631,7 +631,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     }];
 }
 
-- (void)cancelPendingAuthenticaitonChallenge {
+- (void)cancelPendingAuthenticationChallenge {
     assert([NSThread isMainThread]);
     assert(self.clientThread != nil);
     
