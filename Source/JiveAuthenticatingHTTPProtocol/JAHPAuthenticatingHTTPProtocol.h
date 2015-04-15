@@ -84,30 +84,30 @@
  *  \param newValue The new delegate to use; may be nil.
  */
 
-+ (void)setDelegate:(id<JAHPAuthenticatingHTTPProtocolDelegate>)newValue;
++ (void)setDelegate:(nullable id<JAHPAuthenticatingHTTPProtocolDelegate>)newValue;
 
 /*! Returns the class delegate.
  */
 
-+ (id<JAHPAuthenticatingHTTPProtocolDelegate>)delegate;
++ (nullable id<JAHPAuthenticatingHTTPProtocolDelegate>)delegate;
 
 /*! Sets the user agent token
  *  \details This token is appended to the system default user agent.
  */
-+ (void)setUserAgentToken:(NSString *)userAgentToken;
++ (void)setUserAgentToken:(nullable NSString *)userAgentToken;
 
 /*! Returns the user agent token.
  */
-+ (NSString *)userAgentToken;
++ (nullable NSString *)userAgentToken;
 
-@property (atomic, strong, readonly ) NSURLAuthenticationChallenge *    pendingChallenge;   ///< The current authentication challenge; it's only safe to access this from the main thread.
+@property (atomic, strong, readonly)  NSURLAuthenticationChallenge * __nullable     pendingChallenge;   ///< The current authentication challenge; it's only safe to access this from the main thread.
 
 /*! Call this method to resolve an authentication challeng.  This must be called on the main thread.
  *  \param challenge The challenge to resolve. This must match the pendingChallenge property.
  *  \param credential The credential to use, or nil to continue without a credential.
  */
 
-- (void)resolvePendingAuthenticationChallengeWithCredential:(NSURLCredential *)credential;
+- (void)resolvePendingAuthenticationChallengeWithCredential:(nonnull NSURLCredential *)credential;
 - (void)cancelPendingAuthenticationChallenge;
 
 @end
@@ -148,6 +148,8 @@
  *  but that would make it harder for clients and require a major rework of my implementation.
  */
 
+typedef void (^JAHPDidCancelAuthenticationChallengeHandler)(JAHPAuthenticatingHTTPProtocol * __nonnull authenticatingHTTPProtocol, NSURLAuthenticationChallenge * __nonnull challenge);
+
 @protocol JAHPAuthenticatingHTTPProtocolDelegate <NSObject>
 
 @optional
@@ -160,16 +162,21 @@
  *  callback, or NO for the challenge to be handled in the default way.
  */
 
-- (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace;
+- (BOOL)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol canAuthenticateAgainstProtectionSpace:(nonnull NSURLProtectionSpace *)protectionSpace;
 
 /*! Called by an JAHPAuthenticatingHTTPProtocol instance to request that the delegate process on authentication
  *  challenge. Will be called on the main thread. Unless the challenge is cancelled (see below)
  *  the delegate must eventually resolve it by calling -resolveAuthenticationChallenge:withCredential:.
  *  \param protocol The protocol instance itself; will not be nil.
  *  \param challenge The authentication challenge; will not be nil.
+ *  \returns an optional JAHPDidCancelAuthenticationChallengeHandler that will be called when the
+ *  JAHPAuthenticatingHTTPProtocol instance cancels the authentication challenge. Just like
+ *  -authenticatingHTTPProtocol:didCancelAuthenticationChallenge:. If this is returned, there is usually no need 
+ *  to implement -authenticatingHTTPProtocol:didCancelAuthenticationChallenge:. This block will be called before
+ *  -authenticatingHTTPProtocol:didCancelAuthenticationChallenge:.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
+- (nullable JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(nonnull NSURLAuthenticationChallenge *)challenge;
 
 /*! Called by an JAHPAuthenticatingHTTPProtocol instance to cancel an issued authentication challenge.
  *  Will be called on the main thread.
@@ -178,7 +185,7 @@
  *  previously issued by -authenticatingHTTPProtocol:canAuthenticateAgainstProtectionSpace:.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge;
+- (void)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didCancelAuthenticationChallenge:(nonnull NSURLAuthenticationChallenge *)challenge;
 
 /*! Called by the JAHPAuthenticatingHTTPProtocol to log various bits of information.
  *  Can be called on any thread.
@@ -187,6 +194,11 @@
  *  \param arguments Arguments for that format string.
  */
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments;
+- (void)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(nonnull NSString *)format
+// clang's static analyzer doesn't know that a va_list can't have an nullability annotation.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnullability-completeness"
+                         arguments:(va_list)arguments;
+#pragma clang diagnostic pop
 
 @end

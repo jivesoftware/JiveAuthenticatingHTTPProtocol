@@ -54,7 +54,7 @@
 // I use the following typedef to keep myself sane in the face of the wacky
 // Objective-C block syntax.
 
-typedef void (^ChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * credential);
+typedef void (^JAHPChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * credential);
 
 @interface JAHPWeakDelegateHolder : NSObject
 
@@ -79,7 +79,8 @@ typedef void (^ChallengeCompletionHandler)(NSURLSessionAuthChallengeDisposition 
 @property (atomic, assign, readwrite) NSTimeInterval                    startTime;          ///< The start time of the request; written by client thread only; read by any thread.
 @property (atomic, strong, readwrite) NSURLSessionDataTask *            task;               ///< The NSURLSession task for that request; client thread only.
 @property (atomic, strong, readwrite) NSURLAuthenticationChallenge *    pendingChallenge;
-@property (atomic, copy,   readwrite) ChallengeCompletionHandler        pendingChallengeCompletionHandler;  ///< The completion handler that matches pendingChallenge; main thread only.
+@property (atomic, copy,   readwrite) JAHPChallengeCompletionHandler        pendingChallengeCompletionHandler;  ///< The completion handler that matches pendingChallenge; main thread only.
+@property (atomic, copy,   readwrite) JAHPDidCancelAuthenticationChallengeHandler pendingDidCancelAuthenticationChallengeHandler;  ///< The handler that runs when we cancel the pendingChallenge; main thread only.
 
 @end
 
@@ -464,7 +465,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
  *  \param completionHandler The associated completion handler; must not be nil.
  */
 
-- (void)didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(ChallengeCompletionHandler)completionHandler
+- (void)didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(JAHPChallengeCompletionHandler)completionHandler
 {
     assert(challenge != nil);
     assert(completionHandler != nil);
@@ -487,7 +488,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
  *  \param completionHandler The associated completion handler; must not be nil.
  */
 
-- (void)mainThreadDidReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(ChallengeCompletionHandler)completionHandler
+- (void)mainThreadDidReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(JAHPChallengeCompletionHandler)completionHandler
 {
     assert(challenge != nil);
     assert(completionHandler != nil);
@@ -529,7 +530,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
             // Pass the challenge to the delegate.
             
             [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ passed to delegate", [[challenge protectionSpace] authenticationMethod]];
-            [strongDelegate authenticatingHTTPProtocol:self didReceiveAuthenticationChallenge:self.pendingChallenge];
+            self.pendingDidCancelAuthenticationChallengeHandler = [strongDelegate authenticatingHTTPProtocol:self didReceiveAuthenticationChallenge:self.pendingChallenge];
         }
     }
 }
@@ -544,7 +545,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
  *  \param completionHandler The associated completion handler; must not be nil.
  */
 
-- (void)clientThreadCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(ChallengeCompletionHandler)completionHandler
+- (void)clientThreadCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(JAHPChallengeCompletionHandler)completionHandler
 {
 #pragma unused(challenge)
     assert(challenge != nil);
@@ -582,15 +583,21 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
         } else {
             id<JAHPAuthenticatingHTTPProtocolDelegate>  strongeDelegate;
             NSURLAuthenticationChallenge *  challenge;
+            JAHPDidCancelAuthenticationChallengeHandler  didCancelAuthenticationChallengeHandler;
             
             strongeDelegate = [[self class] delegate];
             
             challenge = self.pendingChallenge;
+            didCancelAuthenticationChallengeHandler = self.pendingDidCancelAuthenticationChallengeHandler;
             self.pendingChallenge = nil;
             self.pendingChallengeCompletionHandler = nil;
+            self.pendingDidCancelAuthenticationChallengeHandler = nil;
             
             if ([strongeDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:didCancelAuthenticationChallenge:)]) {
                 [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancellation passed to delegate", [[challenge protectionSpace] authenticationMethod]];
+                if (didCancelAuthenticationChallengeHandler) {
+                    didCancelAuthenticationChallengeHandler(self, challenge);
+                }
                 [strongeDelegate authenticatingHTTPProtocol:self didCancelAuthenticationChallenge:challenge];
             } else {
                 [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ cancellation failed; no delegate method", [[challenge protectionSpace] authenticationMethod]];
@@ -608,7 +615,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     assert([NSThread isMainThread]);
     assert(self.clientThread != nil);
     
-    ChallengeCompletionHandler  completionHandler;
+    JAHPChallengeCompletionHandler  completionHandler;
     NSURLAuthenticationChallenge *challenge;
     
     // We clear out our record of the pending challenge and then pass the real work
@@ -619,6 +626,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     challenge = self.pendingChallenge;
     self.pendingChallenge = nil;
     self.pendingChallengeCompletionHandler = nil;
+    self.pendingDidCancelAuthenticationChallengeHandler = nil;
     
     [self performOnThread:self.clientThread modes:self.modes block:^{
         if (credential == nil) {
@@ -635,7 +643,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     assert([NSThread isMainThread]);
     assert(self.clientThread != nil);
     
-    ChallengeCompletionHandler  completionHandler;
+    JAHPChallengeCompletionHandler  completionHandler;
     NSURLAuthenticationChallenge *challenge;
     
     // We clear out our record of the pending challenge and then pass the real work
@@ -646,6 +654,7 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     challenge = self.pendingChallenge;
     self.pendingChallenge = nil;
     self.pendingChallengeCompletionHandler = nil;
+    self.pendingDidCancelAuthenticationChallengeHandler = nil;
     
     [self performOnThread:self.clientThread modes:self.modes block:^{
         [[self class] authenticatingHTTPProtocol:self logWithFormat:@"challenge %@ was canceld", [[challenge protectionSpace] authenticationMethod]];

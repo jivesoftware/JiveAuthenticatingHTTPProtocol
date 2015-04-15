@@ -38,7 +38,10 @@
     return canAuthenticate;
 }
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
+
+#define USE_PROTOCOL_FOR_CANCELLATION 0
+#if USE_PROTOCOL_FOR_CANCELLATION
+- (JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
     self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
     
     self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
@@ -50,6 +53,7 @@
                           nil];
     self.authAlertView.alertViewStyle = UIAlertViewStyleLoginAndPasswordInput;
     [self.authAlertView show];
+    return nil;
 }
 
 - (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
@@ -64,6 +68,34 @@
                       cancelButtonTitle:@"OK"
                       otherButtonTitles:nil] show];
 }
+#else
+- (JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
+    self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
+    
+    self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
+                                                    message:@"Enter 'foo' for the username and 'bar' for the password"
+                                                   delegate:self
+                                          cancelButtonTitle:@"Cancel"
+                                          otherButtonTitles:
+                          @"OK",
+                          nil];
+    self.authAlertView.alertViewStyle = UIAlertViewStyleLoginAndPasswordInput;
+    [self.authAlertView show];
+    
+    return ^(JAHPAuthenticatingHTTPProtocol *authenticatingHTTPProtocol, NSURLAuthenticationChallenge *challenge) {
+        [self.authAlertView dismissWithClickedButtonIndex:self.authAlertView.cancelButtonIndex
+                                                 animated:YES];
+        self.authAlertView = nil;
+        self.authenticatingHTTPProtocol = nil;
+        
+        [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
+                                    message:@"The URL Loading System cancelled authentication"
+                                   delegate:nil
+                          cancelButtonTitle:@"OK"
+                          otherButtonTitles:nil] show];
+    };
+}
+#endif
 
 - (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
     NSLog(@"%@", [[NSString alloc] initWithFormat:format arguments:arguments]);
