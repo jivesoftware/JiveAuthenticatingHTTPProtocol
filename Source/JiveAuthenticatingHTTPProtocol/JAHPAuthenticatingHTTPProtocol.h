@@ -201,4 +201,15 @@ typedef void (^JAHPDidCancelAuthenticationChallengeHandler)(JAHPAuthenticatingHT
                          arguments:(va_list)arguments;
 #pragma clang diagnostic pop
 
+/*! Called by the JAHPAuthenticatingHTTPProtocol to log various bits of information. Use this if implementing in Swift. Swift doesn't like
+ * -authenticatingHTTPProtocol:logWithFormat:arguments: because 
+ * `Method cannot be marked @objc because the type of the parameter 3 cannot be represented in Objective-C`
+ *  I assume this is a problem with Swift not understanding that CVAListPointer should become va_list.
+ *  Can be called on any thread.
+ *  \param protocol The protocol instance itself; nil to indicate log messages from the class itself.
+ *  \param message A message to log
+ */
+
+- (void)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logMessage:(nonnull NSString *)message;
+
 @end

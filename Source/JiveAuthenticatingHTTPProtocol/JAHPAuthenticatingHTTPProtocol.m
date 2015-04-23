@@ -191,6 +191,14 @@ static NSString * sUserAgentToken;
         [strongDelegate authenticatingHTTPProtocol:protocol logWithFormat:format arguments:arguments];
         va_end(arguments);
     }
+    if ([strongDelegate respondsToSelector:@selector(authenticatingHTTPProtocol:logMessage:)]) {
+        va_list arguments;
+        
+        va_start(arguments, format);
+        NSString *message = [[NSString alloc] initWithFormat:format arguments:arguments];
+        va_end(arguments);
+        [strongDelegate authenticatingHTTPProtocol:protocol logMessage:message];
+    }
 }
 
 #pragma mark * NSURLProtocol overrides

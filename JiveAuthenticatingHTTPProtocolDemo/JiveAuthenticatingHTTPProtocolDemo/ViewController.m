@@ -98,7 +98,11 @@
 #endif
 
 - (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
-    NSLog(@"%@", [[NSString alloc] initWithFormat:format arguments:arguments]);
+    NSLog(@"logWithFormat: %@", [[NSString alloc] initWithFormat:format arguments:arguments]);
+}
+
+- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logMessage:(NSString *)message {
+    NSLog(@"logMessage: %@", message);
 }
 
 #pragma mark - UIAlertViewDelegate
