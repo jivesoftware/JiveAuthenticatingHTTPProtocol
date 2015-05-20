@@ -194,7 +194,7 @@ typedef void (^JAHPDidCancelAuthenticationChallengeHandler)(JAHPAuthenticatingHT
  *  \param arguments Arguments for that format string.
  */
 
-- (void)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(nonnull NSString *)format
+- (void)authenticatingHTTPProtocol:(nullable JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(nonnull NSString *)format
 // clang's static analyzer doesn't know that a va_list can't have an nullability annotation.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
@@ -210,6 +210,6 @@ typedef void (^JAHPDidCancelAuthenticationChallengeHandler)(JAHPAuthenticatingHT
  *  \param message A message to log
  */
 
-- (void)authenticatingHTTPProtocol:(nonnull JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logMessage:(nonnull NSString *)message;
+- (void)authenticatingHTTPProtocol:(nullable JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logMessage:(nonnull NSString *)message;
 
 @end
