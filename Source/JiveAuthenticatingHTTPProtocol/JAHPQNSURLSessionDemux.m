@@ -136,10 +136,10 @@
         
         self->_sessionDelegateQueue = [[NSOperationQueue alloc] init];
         [self->_sessionDelegateQueue setMaxConcurrentOperationCount:1];
-        [self->_sessionDelegateQueue setName:@"QNSURLSessionDemux"];
+        [self->_sessionDelegateQueue setName:@"JAHPQNSURLSessionDemux"];
         
         self->_session = [NSURLSession sessionWithConfiguration:self->_configuration delegate:self delegateQueue:self->_sessionDelegateQueue];
-        self->_session.sessionDescription = @"QNSURLSessionDemux";
+        self->_session.sessionDescription = @"JAHPQNSURLSessionDemux";
     }
     return self;
 }
