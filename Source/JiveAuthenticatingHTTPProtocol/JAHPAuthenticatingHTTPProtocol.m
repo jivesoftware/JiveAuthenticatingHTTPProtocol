@@ -253,9 +253,9 @@ static NSString * kJAHPRecursiveRequestFlagProperty = @"com.jivesoftware.JAHPAut
     // NSURLProtocol subclass.
     
     if (shouldAccept) {
-        shouldAccept = YES && [scheme isEqual:@"http"];
+        shouldAccept = [scheme isEqual:@"http"];
         if ( ! shouldAccept ) {
-            shouldAccept = YES && [scheme isEqual:@"https"];
+            shouldAccept = [scheme isEqual:@"https"];
         }
         
         if ( ! shouldAccept ) {
