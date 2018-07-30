@@ -16,6 +16,8 @@
 @property (nonatomic, strong) UIAlertView *authAlertView;
 @property (nonatomic, strong) JAHPAuthenticatingHTTPProtocol *authenticatingHTTPProtocol;
 
+@property (nonatomic, strong) NSURLCredential* userInput;
+
 @end
 
 @implementation ViewController
@@ -44,6 +46,13 @@
 - (JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
     self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
     
+    if (nil != self.userInput) {
+        
+        [self passCredentialsInputToConnection];
+        return;
+    }
+    
+    
     self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
                                                     message:@"Enter 'foo' for the username and 'bar' for the password"
                                                    delegate:self
@@ -70,7 +79,34 @@
 }
 #else
 - (JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
+    
+    __weak ViewController* weakSelf = self;
     self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
+    
+    
+    JAHPDidCancelAuthenticationChallengeHandler result =
+    ^(JAHPAuthenticatingHTTPProtocol *authenticatingHTTPProtocol, NSURLAuthenticationChallenge *challenge) {
+        ViewController* strongSelf = weakSelf;
+        
+        [strongSelf.authAlertView dismissWithClickedButtonIndex:strongSelf.authAlertView.cancelButtonIndex
+                                                 animated:YES];
+        strongSelf.authAlertView = nil;
+        strongSelf.authenticatingHTTPProtocol = nil;
+        
+        [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
+                                    message:@"The URL Loading System cancelled authentication"
+                                   delegate:nil
+                          cancelButtonTitle:@"OK"
+                          otherButtonTitles:nil] show];
+    };
+    
+    
+    
+    if (nil != self.userInput) {
+        
+        [self passCredentialsInputToConnection];
+        return result;
+    }
     
     self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
                                                     message:@"Enter 'foo' for the username and 'bar' for the password"
@@ -82,24 +118,18 @@
     self.authAlertView.alertViewStyle = UIAlertViewStyleLoginAndPasswordInput;
     [self.authAlertView show];
     
-    return ^(JAHPAuthenticatingHTTPProtocol *authenticatingHTTPProtocol, NSURLAuthenticationChallenge *challenge) {
-        [self.authAlertView dismissWithClickedButtonIndex:self.authAlertView.cancelButtonIndex
-                                                 animated:YES];
-        self.authAlertView = nil;
-        self.authenticatingHTTPProtocol = nil;
-        
-        [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
-                                    message:@"The URL Loading System cancelled authentication"
-                                   delegate:nil
-                          cancelButtonTitle:@"OK"
-                          otherButtonTitles:nil] show];
-    };
+    return result;
 }
 #endif
 
-- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
-    NSLog(@"logWithFormat: %@", [[NSString alloc] initWithFormat:format arguments:arguments]);
-}
+
+// It's ok to not overload this method.
+// Then all logs will go to the `authenticatingHTTPProtocol:logMessage:` method
+//
+//- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
+//    
+//    NSLog(@"logWithFormat: %@", [[NSString alloc] initWithFormat:format arguments:arguments]);
+//}
 
 - (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logMessage:(NSString *)message {
     NSLog(@"logMessage: %@", message);
@@ -144,7 +174,18 @@
     NSURLCredential *credential = [NSURLCredential credentialWithUser:username
                                                              password:password
                                                           persistence:NSURLCredentialPersistenceNone];
-    [self.authenticatingHTTPProtocol resolvePendingAuthenticationChallengeWithCredential:credential];
+    self.userInput = credential;
+    
+    
+    [self passCredentialsInputToConnection];
+}
+
+-(void)passCredentialsInputToConnection {
+    
+    NSParameterAssert(nil != self.userInput);
+    NSParameterAssert(nil != self.authenticatingHTTPProtocol);
+    
+    [self.authenticatingHTTPProtocol resolvePendingAuthenticationChallengeWithCredential:self.userInput];
     self.authenticatingHTTPProtocol = nil;
 }
 
