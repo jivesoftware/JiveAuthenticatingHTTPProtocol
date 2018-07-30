@@ -36,7 +36,11 @@ typedef void (^WKWebViewAuthChallengeBlock)(
     [super viewDidLoad];
     
     self.webView.navigationDelegate = self;
-    [self.webView loadRequest:[[NSURLRequest alloc] initWithURL:[NSURL URLWithString:@"https://httpbin.org/basic-auth/foo/bar"]]];
+    
+    NSString* txtUrl = @"https://httpbin.org/basic-auth/foo/bar";
+    NSURL* url = [NSURL URLWithString: txtUrl];
+    NSURLRequest* request = [[NSURLRequest alloc] initWithURL: url];
+    [self.webView loadRequest: request];
 }
 
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
