@@ -46,6 +46,8 @@ typedef void (^WKWebViewAuthChallengeBlock)(
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
 - (BOOL)shouldShowDialogForAuthorizationMethod:(NSString*)authorizationMethod
 {
+    NSLog(@"shouldShowDialogForAuthorizationMethod: %@", authorizationMethod);
+    
     NSArray* interceptedAuthMethods =
     @[
         NSURLAuthenticationMethodHTTPBasic
@@ -75,28 +77,39 @@ typedef void (^WKWebViewAuthChallengeBlock)(
     [self cancelChallengeAfterAlertViewDismissal];
 }
 
-#pragma mark - WKWebViewDelegate
+#pragma mark - WKWebViewDelegate - logic
 -(void)webView:(WKWebView *)webView
 didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge
 completionHandler:(WKWebViewAuthChallengeBlock)completionHandler
 {
     NSString* authMethod = [[challenge protectionSpace] authenticationMethod];
     BOOL shouldIntercept = [self shouldShowDialogForAuthorizationMethod: authMethod];
+ 
+    NSLog(@"webView:didReceiveAuthenticationChallenge: %@ | %@ | %@"
+          , [challenge debugDescription]
+          , [challenge protectionSpace]
+          , authMethod);
     
     if (!shouldIntercept)
     {
+        NSLog(@"webView:didReceiveAuthenticationChallenge: not intercepting - %@", authMethod);
+        
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
         return;
     }
     
     if (nil != self.userInput)
     {
+        NSLog(@"webView:didReceiveAuthenticationChallenge: has memoized credentials - %@", [self.userInput debugDescription]);
+        
         completionHandler(NSURLSessionAuthChallengeUseCredential, self.userInput);
         return;
     }
     
     //=== show alert
     //
+    NSLog(@"webView:didReceiveAuthenticationChallenge: need credentials. Showing the dialog");
+    
     self.webViewChallengeBlock = completionHandler;
     
     self.authAlertView = [[UIAlertView alloc] initWithTitle:@"JAHPDemo"
@@ -110,11 +123,88 @@ completionHandler:(WKWebViewAuthChallengeBlock)completionHandler
     [self.authAlertView show];
 }
 
+- (void)webView:(WKWebView *)webView
+decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse
+decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler
+{
+    NSLog(@"webView:decidePolicyForNavigationResponse: %@", [navigationResponse debugDescription]);
+    
+    decisionHandler(WKNavigationResponsePolicyAllow);
+}
+
+- (void)webView:(WKWebView *)webView
+decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction
+decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    NSLog(@"webView:decidePolicyForNavigationAction: %@", [navigationAction debugDescription]);
+    
+    decisionHandler(WKNavigationActionPolicyAllow);
+}
+
+#pragma mark - WKWebViewDelegate - traces
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView
+{
+    NSLog(@"webViewWebContentProcessDidTerminate:");
+}
+
+- (void)webView:(WKWebView *)webView
+didFinishNavigation:(null_unspecified WKNavigation *)navigation
+{
+    NSLog(@"webView:didFinishNavigation: %@", [navigation debugDescription]);
+}
+
+- (void)webView:(WKWebView *)webView
+didCommitNavigation:(null_unspecified WKNavigation *)navigation
+{
+    NSLog(@"webView:didCommitNavigation: %@", [navigation debugDescription]);
+}
+
+- (void)webView:(WKWebView *)webView
+didFailProvisionalNavigation:(null_unspecified WKNavigation *)navigation
+      withError:(NSError *)error
+{
+    NSLog(@"webView:didFailProvisionalNavigation: %@", [navigation debugDescription]);
+    
+    [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
+                                message:error.localizedDescription
+                               delegate:nil
+                      cancelButtonTitle:@"OK"
+                      otherButtonTitles:nil] show];
+}
+
+- (void)webView:(WKWebView *)webView
+didFailNavigation:(null_unspecified WKNavigation *)navigation
+      withError:(NSError *)error
+{
+    NSLog(@"webView:didFailNavigation: %@", [navigation debugDescription]);
+    
+    [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
+                                message:error.localizedDescription
+                               delegate:nil
+                      cancelButtonTitle:@"OK"
+                      otherButtonTitles:nil] show];
+}
+
+#pragma mark - WKWebViewDelegate - trace Provisioning navigation
+
+- (void)webView:(WKWebView *)webView
+didReceiveServerRedirectForProvisionalNavigation:(null_unspecified WKNavigation *)navigation
+{
+    NSLog(@"webView:didReceiveServerRedirectForProvisionalNavigation: %@", [navigation debugDescription]);
+}
+
+- (void)webView:(WKWebView *)webView
+didStartProvisionalNavigation:(null_unspecified WKNavigation *)navigation
+{
+    NSLog(@"webView:didReceiveServerRedirectForProvisionalNavigation: %@", [navigation debugDescription]);
+}
 
 #pragma mark - Private API
 
 - (void)cancelChallengeAfterAlertViewDismissal
 {
+    NSLog(@"cancelChallengeAfterAlertViewDismissal");
+    
     if (nil != self.webViewChallengeBlock)
     {
         self.webViewChallengeBlock(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
@@ -124,6 +214,9 @@ completionHandler:(WKWebViewAuthChallengeBlock)completionHandler
 }
 
 - (void)useAuthAlertViewUsernamePasswordForChallenge {
+    
+    NSLog(@"useAuthAlertViewUsernamePasswordForChallenge");
+    
     NSString *username = [self.authAlertView textFieldAtIndex:0].text;
     NSString *password = [self.authAlertView textFieldAtIndex:1].text;
     self.authAlertView = nil;
@@ -137,6 +230,8 @@ completionHandler:(WKWebViewAuthChallengeBlock)completionHandler
 }
 
 -(void)passCredentialsInputToConnection {
+    
+    NSLog(@"passCredentialsInputToConnection");
     
     NSParameterAssert(nil != self.userInput);
     NSParameterAssert(nil != self.webViewChallengeBlock);
