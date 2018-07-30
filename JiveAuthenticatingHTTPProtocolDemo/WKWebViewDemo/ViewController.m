@@ -20,7 +20,7 @@ typedef void (^WKWebViewAuthChallengeBlock)(
 , WKNavigationDelegate
 >
 
-@property (nonatomic, weak) IBOutlet WKWebView *webView;
+@property (nonatomic, weak) WKWebView *webView;
 @property (nonatomic, strong) UIAlertView *authAlertView;
 @property (nonatomic, copy) WKWebViewAuthChallengeBlock webViewChallengeBlock;
 
@@ -35,7 +35,32 @@ typedef void (^WKWebViewAuthChallengeBlock)(
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    
+    
+    WKWebViewConfiguration* config = [WKWebViewConfiguration new];
+    config.allowsInlineMediaPlayback = YES;
+    config.allowsPictureInPictureMediaPlayback = NO;
+    config.mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
+    
+    CGRect fullScreen = self.view.bounds;
+    WKWebView* webView = [[WKWebView alloc] initWithFrame: fullScreen
+                                            configuration: config];
+    self.webView = webView;
+    
+    webView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview: webView];
+    
+    [NSLayoutConstraint activateConstraints:
+    @[
+     [webView.topAnchor    constraintEqualToAnchor: self.topLayoutGuide.bottomAnchor],
+     [webView.bottomAnchor constraintEqualToAnchor: self.bottomLayoutGuide.topAnchor],
+     [webView.leftAnchor   constraintEqualToAnchor: self.view.leftAnchor            ],
+     [webView.rightAnchor  constraintEqualToAnchor: self.view.rightAnchor           ]
+    ]];
+    
+
     self.webView.navigationDelegate = self;
+    
     
     NSString* txtUrl = @"https://httpbin.org/basic-auth/foo/bar";
     NSURL* url = [NSURL URLWithString: txtUrl];
