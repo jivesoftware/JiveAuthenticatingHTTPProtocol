@@ -36,7 +36,19 @@
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
 
 - (BOOL)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace *)protectionSpace {
-    BOOL canAuthenticate = [protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodHTTPBasic];
+
+    NSArray* interceptedAuthMethods =
+    @[
+        NSURLAuthenticationMethodHTTPBasic
+      , NSURLAuthenticationMethodHTTPDigest
+      , NSURLAuthenticationMethodNTLM
+    ];
+    
+    NSSet* interceptedAuthMethodsSet = [NSSet setWithArray: interceptedAuthMethods];
+    
+    BOOL canAuthenticate =
+    [interceptedAuthMethodsSet containsObject: protectionSpace.authenticationMethod];
+    
     return canAuthenticate;
 }
 
