@@ -73,9 +73,9 @@
 
 - (instancetype)initWithTask:(NSURLSessionDataTask *)task delegate:(id<NSURLSessionDataDelegate>)delegate modes:(NSArray *)modes
 {
-    assert(task != nil);
-    assert(delegate != nil);
-    assert(modes != nil);
+    NSParameterAssert(task != nil);
+    NSParameterAssert(delegate != nil);
+    NSParameterAssert(modes != nil);
     
     self = [super init];
     if (self != nil) {
@@ -89,14 +89,14 @@
 
 - (void)performBlock:(dispatch_block_t)block
 {
-    assert(self.delegate != nil);
-    assert(self.thread != nil);
+    NSParameterAssert(self.delegate != nil);
+    NSParameterAssert(self.thread != nil);
     [self performSelector:@selector(performBlockOnClientThread:) onThread:self.thread withObject:[block copy] waitUntilDone:NO modes:self.modes];
 }
 
 - (void)performBlockOnClientThread:(dispatch_block_t)block
 {
-    assert([NSThread currentThread] == self.thread);
+    NSParameterAssert([NSThread currentThread] == self.thread);
     block();
 }
 
@@ -149,8 +149,8 @@
     NSURLSessionDataTask *          task;
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
-    assert(request != nil);
-    assert(delegate != nil);
+    NSParameterAssert(request != nil);
+    NSParameterAssert(delegate != nil);
     // modes may be nil
     
     if ([modes count] == 0) {
@@ -158,7 +158,7 @@
     }
     
     task = [self.session dataTaskWithRequest:request];
-    assert(task != nil);
+    NSParameterAssert(task != nil);
     
     taskInfo = [[JAHPQNSURLSessionDemuxTaskInfo alloc] initWithTask:task delegate:delegate modes:modes];
     
@@ -173,11 +173,11 @@
 {
     JAHPQNSURLSessionDemuxTaskInfo *    result;
     
-    assert(task != nil);
+    NSParameterAssert(task != nil);
     
     @synchronized (self) {
         result = self.taskInfoByTaskID[@(task.taskIdentifier)];
-        assert(result != nil);
+        NSParameterAssert(result != nil);
     }
     return result;
 }
@@ -187,7 +187,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session task:task willPerformHTTPRedirection:response newRequest:newRequest completionHandler:completionHandler];
         }];
@@ -201,7 +201,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:didReceiveChallenge:completionHandler:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session task:task didReceiveChallenge:challenge completionHandler:completionHandler];
         }];
@@ -215,7 +215,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:needNewBodyStream:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session task:task needNewBodyStream:completionHandler];
         }];
@@ -229,7 +229,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session task:task didSendBodyData:bytesSent totalBytesSent:totalBytesSent totalBytesExpectedToSend:totalBytesExpectedToSend];
         }];
@@ -252,7 +252,7 @@
     // after calling the delegate, otherwise the client thread side of the -performBlock: code can
     // find itself with an invalidated task info.
     
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:task:didCompleteWithError:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session task:task didCompleteWithError:error];
             [taskInfo invalidate];
@@ -267,7 +267,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didReceiveResponse:completionHandler:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
         }];
@@ -281,7 +281,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didBecomeDownloadTask:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session dataTask:dataTask didBecomeDownloadTask:downloadTask];
         }];
@@ -293,7 +293,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:didReceiveData:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session dataTask:dataTask didReceiveData:data];
         }];
@@ -305,7 +305,7 @@
     JAHPQNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:dataTask];
-    if ([taskInfo.delegate respondsToSelector:@selector(URLSession:dataTask:willCacheResponse:completionHandler:)]) {
+    if ([taskInfo.delegate respondsToSelector:_cmd]) {
         [taskInfo performBlock:^{
             [taskInfo.delegate URLSession:session dataTask:dataTask willCacheResponse:proposedResponse completionHandler:completionHandler];
         }];
