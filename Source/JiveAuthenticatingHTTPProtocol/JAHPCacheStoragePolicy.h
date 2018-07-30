@@ -58,4 +58,4 @@
  *  \returns A cache storage policy to use.
  */
 
-extern NSURLCacheStoragePolicy JAHPCacheStoragePolicyForRequestAndResponse(NSURLRequest * request, NSHTTPURLResponse * response);
+FOUNDATION_EXPORT NSURLCacheStoragePolicy JAHPCacheStoragePolicyForRequestAndResponse(NSURLRequest * request, NSHTTPURLResponse * response);
