@@ -30,7 +30,7 @@
     [JAHPAuthenticatingHTTPProtocol setDelegate:self];
     [JAHPAuthenticatingHTTPProtocol start];
     self.webView.delegate = self;
-    [self.webView loadRequest:[[NSURLRequest alloc] initWithURL:[NSURL URLWithString:@"http://httpbin.org/basic-auth/foo/bar"]]];
+    [self.webView loadRequest:[[NSURLRequest alloc] initWithURL:[NSURL URLWithString:@"https://httpbin.org/basic-auth/foo/bar"]]];
 }
 
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
@@ -127,7 +127,7 @@
 // Then all logs will go to the `authenticatingHTTPProtocol:logMessage:` method
 //
 //- (void)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol logWithFormat:(NSString *)format arguments:(va_list)arguments {
-//    
+//
 //    NSLog(@"logWithFormat: %@", [[NSString alloc] initWithFormat:format arguments:arguments]);
 //}
 
