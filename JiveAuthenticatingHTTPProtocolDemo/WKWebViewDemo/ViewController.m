@@ -36,11 +36,16 @@ typedef void (^WKWebViewAuthChallengeBlock)(
     [super viewDidLoad];
     
     
+    // https://github.com/cyyuen/ADCookieIsolatedWebView
+    // https://github.com/jjconti/swift-webview-isolated
+    //
+    //
     
     WKWebViewConfiguration* config = [WKWebViewConfiguration new];
     config.allowsInlineMediaPlayback = YES;
     config.allowsPictureInPictureMediaPlayback = NO;
     config.mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeAll;
+    config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
     
     CGRect fullScreen = self.view.bounds;
     WKWebView* webView = [[WKWebView alloc] initWithFrame: fullScreen
@@ -60,8 +65,7 @@ typedef void (^WKWebViewAuthChallengeBlock)(
     
 
     self.webView.navigationDelegate = self;
-    
-    
+        
     NSString* txtUrl = @"https://httpbin.org/basic-auth/foo/bar";
     NSURL* url = [NSURL URLWithString: txtUrl];
     NSURLRequest* request = [[NSURLRequest alloc] initWithURL: url];
