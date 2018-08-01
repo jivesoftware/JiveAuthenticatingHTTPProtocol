@@ -17,6 +17,7 @@
 @property (nonatomic, strong) JAHPAuthenticatingHTTPProtocol *authenticatingHTTPProtocol;
 
 @property (nonatomic, strong) NSURLCredential* userInput;
+@property (nonatomic, assign) BOOL isUserInputAcceptedByServer;
 
 @end
 
@@ -24,13 +25,28 @@
 
 #pragma mark - UIViewController
 
+-(BOOL)isUserInputCredentialsMemoized {
+    
+    BOOL hasInput = (nil != self.userInput);
+    BOOL result = hasInput && self.isUserInputAcceptedByServer;
+    
+    return result;
+}
+
 - (void)viewDidLoad {
+    
     [super viewDidLoad];
     
     [JAHPAuthenticatingHTTPProtocol setDelegate:self];
     [JAHPAuthenticatingHTTPProtocol start];
+    
+    
     self.webView.delegate = self;
-    [self.webView loadRequest:[[NSURLRequest alloc] initWithURL:[NSURL URLWithString:@"https://httpbin.org/basic-auth/foo/bar"]]];
+    
+    NSString* txtUrl = @"https://httpbin.org/basic-auth/foo/bar";
+    NSURL* url = [NSURL URLWithString: txtUrl];
+    NSURLRequest* request = [[NSURLRequest alloc] initWithURL: url];
+    [self.webView loadRequest: request];
 }
 
 #pragma mark - JAHPAuthenticatingHTTPProtocolDelegate
@@ -58,7 +74,7 @@
 - (JAHPDidCancelAuthenticationChallengeHandler)authenticatingHTTPProtocol:(JAHPAuthenticatingHTTPProtocol *)authenticatingHTTPProtocol didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
     self.authenticatingHTTPProtocol = authenticatingHTTPProtocol;
     
-    if (nil != self.userInput) {
+    if ([self isUserInputCredentialsMemoized]) {
         
         [self passCredentialsInputToConnection];
         return;
@@ -114,7 +130,7 @@
     
     
     
-    if (nil != self.userInput) {
+    if ([self isUserInputCredentialsMemoized]) {
         
         [self passCredentialsInputToConnection];
         return result;
@@ -163,6 +179,23 @@
 
 #pragma mark - UIWebViewDelegate
 
+-(void)webViewDidFinishLoad:(UIWebView *)webView {
+    
+    // The page has been loaded.
+    //
+    // When we have the credentials input,
+    // it might be correct to assume...
+    // that it was the request we were asking the credentials for.
+    //
+    // Marking the credentials as "correct" to avoid "alert spam"
+    // Otherwise the alerts will be popping up until cancelled
+    //
+    if (nil != self.userInput)
+    {
+        self.isUserInputAcceptedByServer = YES;
+    }
+}
+
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
     [[[UIAlertView alloc] initWithTitle:@"JAHPDemo"
                                 message:error.localizedDescription
@@ -180,6 +213,7 @@
 }
 
 - (void)useAuthAlertViewUsernamePasswordForChallenge {
+    
     NSString *username = [self.authAlertView textFieldAtIndex:0].text;
     NSString *password = [self.authAlertView textFieldAtIndex:1].text;
     self.authAlertView = nil;
