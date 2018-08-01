@@ -25,6 +25,7 @@ typedef void (^WKWebViewAuthChallengeBlock)(
 @property (nonatomic, copy) WKWebViewAuthChallengeBlock webViewChallengeBlock;
 
 @property (nonatomic, strong) NSURLCredential* userInput;
+@property (nonatomic, assign) BOOL isUserInputAcceptedByServer;
 
 @end
 
@@ -32,8 +33,25 @@ typedef void (^WKWebViewAuthChallengeBlock)(
 
 #pragma mark - UIViewController
 
+-(BOOL)isUserInputCredentialsMemoized {
+    
+    BOOL hasInput = (nil != self.userInput);
+    BOOL result = hasInput && self.isUserInputAcceptedByServer;
+    
+    return result;
+}
+
 - (void)viewDidLoad {
+    
     [super viewDidLoad];
+    
+    // The pre-built credentialas to skip the dialog
+    // Might be useful for web page content debugging
+    //
+    //    NSURLCredential *credential = [NSURLCredential credentialWithUser: @"foo"
+    //                                                             password: @"bar"
+    //                                                          persistence: NSURLCredentialPersistenceNone];
+    //    self.userInput = credential;
     
     
     // https://github.com/cyyuen/ADCookieIsolatedWebView
@@ -127,7 +145,7 @@ completionHandler:(WKWebViewAuthChallengeBlock)completionHandler
         return;
     }
     
-    if (nil != self.userInput)
+    if ([self isUserInputCredentialsMemoized])
     {
         NSLog(@"webView:didReceiveAuthenticationChallenge: has memoized credentials - %@", [self.userInput debugDescription]);
         
@@ -180,6 +198,20 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 didFinishNavigation:(null_unspecified WKNavigation *)navigation
 {
     NSLog(@"webView:didFinishNavigation: %@", [navigation debugDescription]);
+    
+    // The page has been loaded.
+    //
+    // When we have the credentials input,
+    // it might be correct to assume...
+    // that it was the request we were asking the credentials for.
+    //
+    // Marking the credentials as "correct" to avoid "alert spam"
+    // Otherwise the alerts will be popping up until cancelled
+    //
+    if (nil != self.userInput)
+    {
+        self.isUserInputAcceptedByServer = YES;
+    }
 }
 
 - (void)webView:(WKWebView *)webView
